@@ -1,5 +1,5 @@
 # GPUCalc
 ##  At this stage, the project provides the ability to calculate the FFT using numba
-##future:
+## Future:
 * fft using GPU
 * Visualisation results
