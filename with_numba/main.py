@@ -14,13 +14,13 @@ ts_g1 = convert_to_complex(ts_g1)
 ts_g1.shape = (-1, ix_g1.shape[0])
 
 
-@nb.njit
-def main_task(ix_g1, ts_g1):
-    convolution = np.empty_like(ts_g1)
-    ix_g1 = fft_1d(ix_g1)
-    for i in range(ts_g1.shape[0]):
-        spectral = fft_1d(ts_g1[i])
-        convolution[i] = ifft_1d(spectral * ix_g1)
+@nb.njit(["complex64[:,:](complex64[:], complex64[:,:])"], cache=True)
+def main_task(ix, ts):
+    convolution = np.empty_like(ts)
+    ix = fft_1d(ix)
+    for i in range(ts.shape[0]):
+        spectral = fft_1d(ts[i])
+        convolution[i] = ifft_1d(spectral * ix)
 
     return convolution
 

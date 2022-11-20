@@ -4,7 +4,7 @@ import numpy as np
 import numba as nb
 
 
-@nb.jit
+@nb.jit(["intp(intp)"], cache=True)
 def ilog2(n):
     result = -1
     if n < 0:
@@ -15,7 +15,7 @@ def ilog2(n):
     return result
 
 
-@nb.njit(fastmath=True)
+@nb.njit(["intp(intp, intp)"], fastmath=True, cache=True)
 def reverse_bits(val, width):
     result = 0
     for _ in range(width):
@@ -24,8 +24,8 @@ def reverse_bits(val, width):
     return result
 
 
-@nb.njit(fastmath=True)
-def fft_1d_radix2_rbi(arr, direct=True):
+@nb.njit(["complex64[:](complex64[:], boolean)"], fastmath=True, cache=True)
+def fft_1d_radix2_rbi(arr, direct):
     n = len(arr)
     levels = ilog2(n)
     e_arr = np.empty_like(arr)
@@ -51,8 +51,18 @@ def fft_1d_radix2_rbi(arr, direct=True):
     return result
 
 
-@nb.njit(fastmath=True)
-def fft_1d_arb(arr, fft_1d_r2=fft_1d_radix2_rbi):
+@nb.njit(["complex64[:](complex64[:], complex64[:])"],
+         fastmath=True,
+         cache=True)
+def fft_convolve(a_arr, b_arr):
+    return fft_1d_radix2_rbi(
+        fft_1d_radix2_rbi(a_arr, True)
+        * fft_1d_radix2_rbi(b_arr, True),
+        False)
+
+
+@nb.njit(["complex64[:](complex64[:])"], fastmath=True, cache=True)
+def fft_1d_arb(arr):
     n = len(arr)
     m = 1 << (ilog2(n) + 2)
     e_arr = np.empty(n, dtype=np.complex64)
@@ -63,24 +73,19 @@ def fft_1d_arb(arr, fft_1d_r2=fft_1d_radix2_rbi):
     coeff = np.zeros_like(result)
     coeff[:n] = e_arr.conjugate()
     coeff[-n + 1:] = e_arr[:0:-1].conjugate()
-    return fft_convolve(result, coeff, fft_1d_r2)[:n] * e_arr / m
+    return fft_convolve(result, coeff)[:n] * e_arr / m
 
 
-@nb.njit(fastmath=True)
-def fft_convolve(a_arr, b_arr, fft_1d_r2=fft_1d_radix2_rbi):
-    return fft_1d_r2(fft_1d_r2(a_arr) * fft_1d_r2(b_arr), False)
-
-
-@nb.njit(fastmath=True)
+@nb.njit(["complex64[:](complex64[:])"], fastmath=True, cache=True)
 def fft_1d(arr):
     n = len(arr)
     if not n & (n - 1):
-        return fft_1d_radix2_rbi(arr)
+        return fft_1d_radix2_rbi(arr, True)
     else:
         return fft_1d_arb(arr)
 
 
-@nb.njit(fastmath=True)
+@nb.njit(["complex64[:](complex64[:])"], fastmath=True, cache=True)
 def ifft_1d(fu):
     fu_conjugate = np.conjugate(fu)
     fx = fft_1d(fu_conjugate)
@@ -88,6 +93,3 @@ def ifft_1d(fu):
     fx = fx / fu.shape[0]
 
     return fx
-
-
-

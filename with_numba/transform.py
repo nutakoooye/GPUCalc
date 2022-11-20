@@ -2,7 +2,7 @@ import numba as nb
 import numpy as np
 
 
-@nb.jit()
+@nb.jit(["complex64[:](int16[:])"],cache=True)
 def convert_to_complex(int_arr_g1):
     """
     converting an array of ints to an array of complex numbers
